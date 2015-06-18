@@ -10,6 +10,12 @@ ctx = cl.create_some_context()
 queue = cl.CommandQueue(ctx)
 
 
+def to_ocl(a):
+    cla = Array(queue, a.shape, a.dtype)
+    cla.set(a)
+    return cla
+
+
 def gemv_system(queue, m, n, dtype, rng):
     A = np.zeros((m, n), dtype=dtype)
     X = np.zeros(n, dtype=dtype)
@@ -18,12 +24,6 @@ def gemv_system(queue, m, n, dtype, rng):
     X[...] = rng.uniform(-1, 1, size=X.shape)
     Y[...] = rng.uniform(-1, 1, size=Y.shape)
     return A, X, Y
-
-
-def to_ocl(a):
-    cla = Array(queue, a.shape, a.dtype)
-    cla.set(a)
-    return cla
 
 
 def test_check_dtype(rng):
@@ -80,6 +80,44 @@ def test_gemv(m, n, rng):
         Yslice = clY.get()
         assert np.allclose(Yslice[0], 0, **args)
         assert np.allclose(Yslice[1:], np.dot(A[:-1, 1:], X[:-1]), **args)
+
+    finally:
+        blas.teardown()
+
+
+@pytest.mark.parametrize('m, k, n', [(5, 6, 7), (10, 9, 10)])
+def test_gemm(m, k, n, rng):
+    dtype = 'float32'
+    args = dict(atol=1e-7, rtol=1e-4)
+
+    A = np.zeros((m, k), dtype=dtype)
+    B = np.zeros((k, n), dtype=dtype)
+    C = np.zeros((m, n), dtype=dtype)
+    CT = np.zeros((n, m), dtype=dtype)
+    A[...] = rng.uniform(-1, 1, size=A.shape)
+    B[...] = rng.uniform(-1, 1, size=B.shape)
+
+    clA, clB, clC, clCT = map(to_ocl, [A, B, C, CT])
+
+    try:
+        blas.setup()
+
+        # normal gemm
+        blas.gemm(queue, clA, clB, clC)
+        assert np.allclose(clC.get(), np.dot(A, B), **args)
+
+        # double transposed gemm
+        blas.gemm(queue, clB, clA, clCT, transA=True, transB=True)
+        assert np.allclose(clCT.get(), np.dot(B.T, A.T), **args)
+
+        # sliced gemm
+        clC.fill(0)
+        blas.gemm(queue, clA[:-1, 1:], clB[:-1, 1:], clC[1:, :-1])
+        Cslice = clC.get()
+        assert np.allclose(Cslice[0, :], 0, **args)
+        assert np.allclose(Cslice[:, -1], 0, **args)
+        assert np.allclose(Cslice[1:, :-1],
+                           np.dot(A[:-1, 1:], B[:-1, 1:]), **args)
 
     finally:
         blas.teardown()

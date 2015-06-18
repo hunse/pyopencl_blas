@@ -105,3 +105,74 @@ def gemv(queue, A, X, Y, bool transA=False, float alpha=1.0, float beta=0.0):
 
     if err != clblasSuccess:
         raise RuntimeError("'gemv' failed: %s" % get_status_message(err))
+
+
+cdef extern from "clBLAS.h":
+    clblasStatus clblasSgemm(
+        clblasOrder order,
+        clblasTranspose transA,
+        clblasTranspose transB,
+        size_t M,
+        size_t N,
+        size_t K,
+        cl_float alpha,
+        const cl_mem A,
+        size_t offA,
+        size_t lda,
+        const cl_mem B,
+        size_t offB,
+        size_t ldb,
+        cl_float beta,
+        cl_mem C,
+        size_t offC,
+        size_t ldc,
+        cl_uint numCommandQueues,
+        cl_command_queue *commandQueues,
+        cl_uint numEventsInWaitList,
+        const cl_event *eventWaitList,
+        cl_event *events)
+
+
+def gemm(queue, A, B, C, transA=False, transB=False,
+         float alpha=1.0, float beta=0.0):
+    """C <- alpha * dot(A, B) + beta * C"""
+    check_dtype([A, B, C], ['float32'])
+    check_matrix(A, 'A')
+    check_matrix(B, 'B')
+    check_matrix(C, 'C')
+
+    cdef size_t M = A.shape[1 if transA else 0]
+    cdef size_t K = A.shape[0 if transA else 1]
+    cdef size_t N = B.shape[0 if transB else 1]
+    assert B.shape[1 if transB else 0] == K
+    assert C.shape[0] == M
+    assert C.shape[1] == N
+
+    cdef size_t float_size = 4
+    cdef cl_mem Adata = <cl_mem><int>A.base_data.int_ptr
+    cdef size_t offA = A.offset / float_size
+    cdef size_t lda = A.strides[0] / float_size
+    cdef cl_mem Bdata = <cl_mem><int>B.base_data.int_ptr
+    cdef size_t offB = B.offset / float_size
+    cdef size_t ldb = B.strides[0] / float_size
+    cdef cl_mem Cdata = <cl_mem><int>C.base_data.int_ptr
+    cdef size_t offC = C.offset / float_size
+    cdef size_t ldc = C.strides[0] / float_size
+
+    cdef cl_uint numCommandQueues = 1
+    cdef cl_command_queue commandQueue = <cl_command_queue><int>queue.int_ptr
+    cdef cl_uint numEventsInWaitList = 0
+    cdef cl_event *eventWaitList = NULL
+    cdef cl_event event = NULL
+
+    cdef clblasStatus err = clblasSgemm(
+        clblasRowMajor,
+        clblasTrans if transA else clblasNoTrans,
+        clblasTrans if transB else clblasNoTrans,
+        M, N, K, alpha, Adata, offA, lda, Bdata, offB, ldb,
+        beta, Cdata, offC, ldc,
+        numCommandQueues, &commandQueue,
+        numEventsInWaitList, eventWaitList, &event)
+
+    if err != clblasSuccess:
+        raise RuntimeError("'gemm' failed: %s" % get_status_message(err))

@@ -1,1 +1,1 @@
-from .blas import gemv
+from .blas import setup, teardown, gemv

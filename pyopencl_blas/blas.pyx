@@ -1,142 +1,45 @@
-import cython
+include "blas_base.pyx"
+
 from libcpp cimport bool
 
 from pyopencl.array import Array
 
 
+def dtypes_str(dtypes):
+    if len(dtypes) == 1:
+        return "'%s'" % dtypes[0]
+    else:
+        return "one of %s" % dtypes
+
+
+def check_dtype(args, dtypes):
+    dtype = args[0].dtype
+    if not all(arg.dtype == dtype for arg in args):
+        raise ValueError("All arguments must have the same dtype (%s)"
+                         % dtypes_str(dtypes))
+    if dtype not in dtypes:
+        raise ValueError("Data type must be %s" % dtypes_str(dtypes))
+
+
+def check_array(a, ndim, name):
+    if not isinstance(a, Array):
+        raise ValueError("'%s' must be a PyOpenCL Array" % name)
+    if not len(a.shape) == ndim:
+        raise ValueError("'%s' must have %d dimensions (got %d)" %
+                         (name, ndim, len(a.shape)))
+
+
+def check_matrix(a, name):
+    check_array(a, 2, name)
+
+
+def check_vector(a, name):
+    check_array(a, 1, name)
+
+
 cdef extern from "clBLAS.h":
-    ctypedef enum clblasStatus:
-        clblasSuccess
-        clblasInvalidValue
-        clblasInvalidCommandQueue
-        clblasInvalidContext
-        clblasInvalidMemObject
-        clblasInvalidDevice
-        clblasInvalidEventWaitList
-        clblasOutOfResources
-        clblasOutOfHostMemory
-        clblasInvalidOperation
-        clblasCompilerNotAvailable
-        clblasBuildProgramFailure
-        clblasNotImplemented
-        clblasNotInitialized
-        clblasInvalidMatA
-        clblasInvalidMatB
-        clblasInvalidMatC
-        clblasInvalidVecX
-        clblasInvalidVecY
-        clblasInvalidDim
-        clblasInvalidLeadDimA
-        clblasInvalidLeadDimB
-        clblasInvalidLeadDimC
-        clblasInvalidIncX
-        clblasInvalidIncY
-        clblasInsufficientMemMatA
-        clblasInsufficientMemMatB
-        clblasInsufficientMemMatC
-        clblasInsufficientMemVecX
-        clblasInsufficientMemVecY
-
-    ctypedef float cl_float
-    ctypedef unsigned int cl_uint
-
-    struct _cl_mem:
-        pass
-    struct _cl_command_queue:
-        pass
-    struct _cl_event:
-        pass
-
-    ctypedef _cl_mem* cl_mem
-    ctypedef _cl_command_queue* cl_command_queue
-    ctypedef _cl_event* cl_event
-
-    ctypedef enum clblasOrder:
-        clblasRowMajor
-        clblasColumnMajor
-
-    ctypedef enum clblasTranspose:
-        clblasNoTrans
-        clblasTrans
-        clblasConjTrans
-
     clblasStatus clblasSetup()
     void clblasTeardown()
-
-    clblasStatus clblasSgemv(
-        clblasOrder order, clblasTranspose transA, size_t M, size_t N,
-        cl_float alpha, const cl_mem A, size_t offA, size_t lda,
-        const cl_mem x, size_t offx, int incx,
-        cl_float beta, cl_mem y, size_t offy, int incy,
-        cl_uint numCommandQueues,
-        cl_command_queue *commandQueues,
-        cl_uint numEventsInWaitList,
-        const cl_event *eventWaitList,
-        cl_event *events)
-
-
-cdef get_status_message(clblasStatus status):
-    if status == clblasSuccess:
-        return "success"
-    if status == clblasInvalidValue:
-        return "invalid value"
-    if status == clblasInvalidCommandQueue:
-        return "invalid command queue"
-    if status == clblasInvalidContext:
-        return "invalid context"
-    if status == clblasInvalidMemObject:
-        return "invalid mem object"
-    if status == clblasInvalidDevice:
-        return "invalid device"
-    if status == clblasInvalidEventWaitList:
-        return "invalid event wait list"
-    if status == clblasOutOfResources:
-        return "out of resources"
-    if status == clblasOutOfHostMemory:
-        return "out of host memory"
-    if status == clblasInvalidOperation:
-        return "invalid operation"
-    if status == clblasCompilerNotAvailable:
-        return "compiler not available"
-    if status == clblasBuildProgramFailure:
-        return "build program failure"
-    if status == clblasNotImplemented:
-        return "clBLAS: not implemented"
-    if status == clblasNotInitialized:
-        return "clBLAS: not initialized"
-    if status == clblasInvalidMatA:
-        return "clBLAS: invalid mat A"
-    if status == clblasInvalidMatB:
-        return "clBLAS: invalid mat B"
-    if status == clblasInvalidMatC:
-        return "clBLAS: invalid mat C"
-    if status == clblasInvalidVecX:
-        return "clBLAS: invalid vec X"
-    if status == clblasInvalidVecY:
-        return "clBLAS: invalid vec Y"
-    if status == clblasInvalidDim:
-        return "clBLAS: invalid dim"
-    if status == clblasInvalidLeadDimA:
-        return "clBLAS: invalid lead dim A"
-    if status == clblasInvalidLeadDimB:
-        return "clBLAS: invalid lead dim B"
-    if status == clblasInvalidLeadDimC:
-        return "clBLAS: invalid lead dim C"
-    if status == clblasInvalidIncX:
-        return "clBLAS: invalid inc X"
-    if status == clblasInvalidIncY:
-        return "clBLAS: invalid inc Y"
-    if status == clblasInsufficientMemMatA:
-        return "clBLAS: insufficient mem mat A"
-    if status == clblasInsufficientMemMatB:
-        return "clBLAS: insufficient mem mat B"
-    if status == clblasInsufficientMemMatC:
-        return "clBLAS: insufficient mem mat C"
-    if status == clblasInsufficientMemVecX:
-        return "clBLAS: insufficient mem vec X"
-    if status == clblasInsufficientMemVecY:
-        return "clBLAS: insufficient mem vec Y"
-    return "unrecognized status (code %d)" % status
 
 
 def setup():
@@ -149,18 +52,32 @@ def teardown():
     clblasTeardown()
 
 
+cdef extern from "clBLAS.h":
+    clblasStatus clblasSgemv(
+        clblasOrder order, clblasTranspose transA, size_t M, size_t N,
+        cl_float alpha, const cl_mem A, size_t offA, size_t lda,
+        const cl_mem x, size_t offx, int incx,
+        cl_float beta, cl_mem y, size_t offy, int incy,
+        cl_uint numCommandQueues,
+        cl_command_queue *commandQueues,
+        cl_uint numEventsInWaitList,
+        const cl_event *eventWaitList,
+        cl_event *events)
+
+
 def gemv(queue, A, X, Y, bool transA=False, float alpha=1.0, float beta=0.0):
     """Y <- beta * Y + alpha * dot(AT, X)
     where AT = A.T if transA else A
     """
-    assert isinstance(A, Array) and len(A.shape) == 2 and A.dtype == 'float32'
-    assert isinstance(X, Array) and len(X.shape) == 1 and X.dtype == 'float32'
-    assert isinstance(Y, Array) and len(Y.shape) == 1 and Y.dtype == 'float32'
+    check_dtype([A, X, Y], ['float32'])
+    check_matrix(A, 'A')
+    check_vector(X, 'X')
+    check_vector(Y, 'Y')
 
     cdef size_t M = A.shape[0]
     cdef size_t N = A.shape[1]
-    assert X.shape[0] == N
-    assert Y.shape[0] == M
+    assert X.shape[0] == (M if transA else N)
+    assert Y.shape[0] == (N if transA else M)
 
     cdef size_t float_size = 4
     cdef cl_mem Adata = <cl_mem><int>A.base_data.int_ptr

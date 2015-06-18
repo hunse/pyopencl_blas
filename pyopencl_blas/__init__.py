@@ -1,1 +1,6 @@
-from .blas import setup, teardown, gemv
+from .blas import (
+    setup, teardown,
+    swap, scal, copy, axpy,
+    gemv,
+    gemm,
+)

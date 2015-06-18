@@ -61,6 +61,43 @@ def test_check_dtype(rng):
 
 
 @pytest.mark.parametrize('dtype', ['float32', 'float64'])
+@pytest.mark.parametrize('n', [7, 25, 100])
+def test_blas1(n, dtype, rng):
+    tols = tolerances[dtype]
+
+    x = np.zeros(n, dtype=dtype)
+    y = np.zeros(n, dtype=dtype)
+    x[:] = rng.uniform(-1, 1, size=n)
+    y[:] = rng.uniform(-1, 1, size=n)
+    alpha = rng.uniform(0.1, 0.9)
+
+    clx, cly = map(to_ocl, [x, y])
+
+    try:
+        blas.setup()
+
+        blas.swap(queue, clx, cly)
+        assert np.allclose(clx.get(), y, **tols)
+        assert np.allclose(cly.get(), x, **tols)
+
+        clx.set(x)
+        blas.scal(queue, alpha, clx)
+        assert np.allclose(clx.get(), alpha * x, **tols)
+
+        clx.set(x)
+        blas.copy(queue, clx, cly)
+        assert np.allclose(cly.get(), x, **tols)
+
+        clx.set(x)
+        cly.set(y)
+        blas.axpy(queue, clx, cly, alpha=alpha)
+        assert np.allclose(cly.get(), alpha * x + y, **tols)
+
+    finally:
+        blas.teardown()
+
+
+@pytest.mark.parametrize('dtype', ['float32', 'float64'])
 @pytest.mark.parametrize('m, n', [(5, 6), (10, 10), (100, 79)])
 def test_gemv(m, n, dtype, rng):
     tols = tolerances[dtype]

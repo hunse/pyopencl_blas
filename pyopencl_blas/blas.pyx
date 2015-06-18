@@ -65,6 +65,496 @@ def teardown():
     clblasTeardown()
 
 
+########## SWAP ##########
+cdef extern from "clBLAS.h":
+    clblasStatus clblasSswap(
+        size_t N,
+        cl_mem X,
+        size_t offx,
+        int incx,
+        cl_mem Y,
+        size_t offy,
+        int incy,
+        cl_uint numCommandQueues,
+        cl_command_queue *commandQueues,
+        cl_uint numEventsInWaitList,
+        const cl_event *eventWaitList,
+        cl_event *events)
+    clblasStatus clblasDswap(
+        size_t N,
+        cl_mem X,
+        size_t offx,
+        int incx,
+        cl_mem Y,
+        size_t offy,
+        int incy,
+        cl_uint numCommandQueues,
+        cl_command_queue *commandQueues,
+        cl_uint numEventsInWaitList,
+        const cl_event *eventWaitList,
+        cl_event *events)
+
+
+def swap(queue, x, y):
+    """y, x = x, y"""
+    dtype = check_dtype([x, y], ['float32', 'float64'])
+    check_vector(x, 'x')
+    check_vector(y, 'y')
+
+    cdef size_t N = x.shape[0]
+    check_shape_dim(y.shape, 0, N, 'y')
+
+    cdef size_t element_size = dtype_size[dtype]
+    cdef cl_mem xdata = <cl_mem><int>x.base_data.int_ptr
+    cdef size_t offx = x.offset / element_size
+    cdef int incx = x.strides[0] / element_size
+    cdef cl_mem ydata = <cl_mem><int>y.base_data.int_ptr
+    cdef size_t offy = y.offset / element_size
+    cdef int incy = y.strides[0] / element_size
+
+    cdef cl_uint numCommandQueues = 1
+    cdef cl_command_queue commandQueue = <cl_command_queue><int>queue.int_ptr
+    cdef cl_uint numEventsInWaitList = 0
+    cdef cl_event *eventWaitList = NULL
+    cdef cl_event event = NULL
+
+    cdef clblasStatus
+    if dtype == np.dtype('float32'):
+        err = clblasSswap(
+            N, xdata, offx, incx, ydata, offy, incy,
+            numCommandQueues, &commandQueue,
+            numEventsInWaitList, eventWaitList, &event)
+    elif dtype == np.dtype('float64'):
+        err = clblasDswap(
+            N, xdata, offx, incx, ydata, offy, incy,
+            numCommandQueues, &commandQueue,
+            numEventsInWaitList, eventWaitList, &event)
+    else:
+        raise ValueError("Unrecognized dtype '%s'" % dtype)
+
+    if err != clblasSuccess:
+        raise RuntimeError("'swap' failed: %s" % get_status_message(err))
+
+
+########## SCAL ##########
+cdef extern from "clBLAS.h":
+    clblasStatus clblasSscal(
+        size_t N,
+        cl_float alpha,
+        cl_mem X,
+        size_t offx,
+        int incx,
+        cl_uint numCommandQueues,
+        cl_command_queue *commandQueues,
+        cl_uint numEventsInWaitList,
+        const cl_event *eventWaitList,
+        cl_event *events)
+    clblasStatus clblasDscal(
+        size_t N,
+        cl_double alpha,
+        cl_mem X,
+        size_t offx,
+        int incx,
+        cl_uint numCommandQueues,
+        cl_command_queue *commandQueues,
+        cl_uint numEventsInWaitList,
+        const cl_event *eventWaitList,
+        cl_event *events)
+
+
+def scal(queue, alpha, x):
+    """x <- alpha * x"""
+    dtype = check_dtype([x], ['float32', 'float64'])
+    check_vector(x, 'x')
+
+    cdef size_t N = x.shape[0]
+
+    cdef size_t element_size = dtype_size[dtype]
+    cdef cl_mem xdata = <cl_mem><int>x.base_data.int_ptr
+    cdef size_t offx = x.offset / element_size
+    cdef int incx = x.strides[0] / element_size
+
+    cdef cl_uint numCommandQueues = 1
+    cdef cl_command_queue commandQueue = <cl_command_queue><int>queue.int_ptr
+    cdef cl_uint numEventsInWaitList = 0
+    cdef cl_event *eventWaitList = NULL
+    cdef cl_event event = NULL
+
+    cdef clblasStatus
+    if dtype == np.dtype('float32'):
+        err = clblasSscal(
+            N, <cl_float>alpha, xdata, offx, incx,
+            numCommandQueues, &commandQueue,
+            numEventsInWaitList, eventWaitList, &event)
+    elif dtype == np.dtype('float64'):
+        err = clblasDscal(
+            N, <cl_double>alpha, xdata, offx, incx,
+            numCommandQueues, &commandQueue,
+            numEventsInWaitList, eventWaitList, &event)
+    else:
+        raise ValueError("Unrecognized dtype '%s'" % dtype)
+
+    if err != clblasSuccess:
+        raise RuntimeError("'scal' failed: %s" % get_status_message(err))
+
+
+########## COPY ##########
+cdef extern from "clBLAS.h":
+    clblasStatus clblasScopy(
+        size_t N,
+        cl_mem X,
+        size_t offx,
+        int incx,
+        cl_mem Y,
+        size_t offy,
+        int incy,
+        cl_uint numCommandQueues,
+        cl_command_queue *commandQueues,
+        cl_uint numEventsInWaitList,
+        const cl_event *eventWaitList,
+        cl_event *events)
+    clblasStatus clblasDcopy(
+        size_t N,
+        cl_mem X,
+        size_t offx,
+        int incx,
+        cl_mem Y,
+        size_t offy,
+        int incy,
+        cl_uint numCommandQueues,
+        cl_command_queue *commandQueues,
+        cl_uint numEventsInWaitList,
+        const cl_event *eventWaitList,
+        cl_event *events)
+
+
+def copy(queue, x, y):
+    """y, x = x, y"""
+    dtype = check_dtype([x, y], ['float32', 'float64'])
+    check_vector(x, 'x')
+    check_vector(y, 'y')
+
+    cdef size_t N = x.shape[0]
+    check_shape_dim(y.shape, 0, N, 'y')
+
+    cdef size_t element_size = dtype_size[dtype]
+    cdef cl_mem xdata = <cl_mem><int>x.base_data.int_ptr
+    cdef size_t offx = x.offset / element_size
+    cdef int incx = x.strides[0] / element_size
+    cdef cl_mem ydata = <cl_mem><int>y.base_data.int_ptr
+    cdef size_t offy = y.offset / element_size
+    cdef int incy = y.strides[0] / element_size
+
+    cdef cl_uint numCommandQueues = 1
+    cdef cl_command_queue commandQueue = <cl_command_queue><int>queue.int_ptr
+    cdef cl_uint numEventsInWaitList = 0
+    cdef cl_event *eventWaitList = NULL
+    cdef cl_event event = NULL
+
+    cdef clblasStatus
+    if dtype == np.dtype('float32'):
+        err = clblasScopy(
+            N, xdata, offx, incx, ydata, offy, incy,
+            numCommandQueues, &commandQueue,
+            numEventsInWaitList, eventWaitList, &event)
+    elif dtype == np.dtype('float64'):
+        err = clblasDcopy(
+            N, xdata, offx, incx, ydata, offy, incy,
+            numCommandQueues, &commandQueue,
+            numEventsInWaitList, eventWaitList, &event)
+    else:
+        raise ValueError("Unrecognized dtype '%s'" % dtype)
+
+    if err != clblasSuccess:
+        raise RuntimeError("'copy' failed: %s" % get_status_message(err))
+
+
+########## AXPY ##########
+cdef extern from "clBLAS.h":
+    clblasStatus clblasSaxpy(
+        size_t N,
+        cl_float alpha,
+        cl_mem X,
+        size_t offx,
+        int incx,
+        cl_mem Y,
+        size_t offy,
+        int incy,
+        cl_uint numCommandQueues,
+        cl_command_queue *commandQueues,
+        cl_uint numEventsInWaitList,
+        const cl_event *eventWaitList,
+        cl_event *events)
+    clblasStatus clblasDaxpy(
+        size_t N,
+        cl_double alpha,
+        cl_mem X,
+        size_t offx,
+        int incx,
+        cl_mem Y,
+        size_t offy,
+        int incy,
+        cl_uint numCommandQueues,
+        cl_command_queue *commandQueues,
+        cl_uint numEventsInWaitList,
+        const cl_event *eventWaitList,
+        cl_event *events)
+
+
+def axpy(queue, x, y, alpha=1.0):
+    """y <- alpha * x + y"""
+    dtype = check_dtype([x, y], ['float32', 'float64'])
+    check_vector(x, 'x')
+    check_vector(y, 'y')
+
+    cdef size_t N = x.shape[0]
+    check_shape_dim(y.shape, 0, N, 'y')
+
+    cdef size_t element_size = dtype_size[dtype]
+    cdef cl_mem xdata = <cl_mem><int>x.base_data.int_ptr
+    cdef size_t offx = x.offset / element_size
+    cdef int incx = x.strides[0] / element_size
+    cdef cl_mem ydata = <cl_mem><int>y.base_data.int_ptr
+    cdef size_t offy = y.offset / element_size
+    cdef int incy = y.strides[0] / element_size
+
+    cdef cl_uint numCommandQueues = 1
+    cdef cl_command_queue commandQueue = <cl_command_queue><int>queue.int_ptr
+    cdef cl_uint numEventsInWaitList = 0
+    cdef cl_event *eventWaitList = NULL
+    cdef cl_event event = NULL
+
+    cdef clblasStatus
+    if dtype == np.dtype('float32'):
+        err = clblasSaxpy(
+            N, <cl_float>alpha, xdata, offx, incx, ydata, offy, incy,
+            numCommandQueues, &commandQueue,
+            numEventsInWaitList, eventWaitList, &event)
+    elif dtype == np.dtype('float64'):
+        err = clblasDaxpy(
+            N, <cl_double>alpha, xdata, offx, incx, ydata, offy, incy,
+            numCommandQueues, &commandQueue,
+            numEventsInWaitList, eventWaitList, &event)
+    else:
+        raise ValueError("Unrecognized dtype '%s'" % dtype)
+
+    if err != clblasSuccess:
+        raise RuntimeError("'axpy' failed: %s" % get_status_message(err))
+
+
+# TODO: implement scratch buffers for the following functions
+
+# ########## DOT ##########
+# cdef extern from "clBLAS.h":
+#     clblasStatus clblasSdot(
+#         size_t N,
+#         cl_float alpha,
+#         cl_mem X,
+#         size_t offx,
+#         int incx,
+#         cl_mem Y,
+#         size_t offy,
+#         int incy,
+#         cl_uint numCommandQueues,
+#         cl_command_queue *commandQueues,
+#         cl_uint numEventsInWaitList,
+#         const cl_event *eventWaitList,
+#         cl_event *events)
+#     clblasStatus clblasDdot(
+#         size_t N,
+#         cl_double alpha,
+#         cl_mem X,
+#         size_t offx,
+#         int incx,
+#         cl_mem Y,
+#         size_t offy,
+#         int incy,
+#         cl_uint numCommandQueues,
+#         cl_command_queue *commandQueues,
+#         cl_uint numEventsInWaitList,
+#         const cl_event *eventWaitList,
+#         cl_event *events)
+
+
+# def dot(queue, x, y, d):
+#     """d <- dot(x, y)"""
+#     dtype = check_dtype([x, y, d], ['float32', 'float64'])
+#     check_vector(x, 'x')
+#     check_vector(y, 'y')
+#     check_scalar(d, 'd')
+
+#     cdef size_t N = x.shape[0]
+#     check_shape_dim(y.shape, 0, N, 'y')
+
+#     cdef size_t element_size = dtype_size[dtype]
+#     cdef cl_mem ddata = <cl_mem><int>d.base_data.int_ptr
+#     cdef size_t offd = d.offset / element_size
+#     cdef cl_mem xdata = <cl_mem><int>x.base_data.int_ptr
+#     cdef size_t offx = x.offset / element_size
+#     cdef int incx = x.strides[0] / element_size
+#     cdef cl_mem ydata = <cl_mem><int>y.base_data.int_ptr
+#     cdef size_t offy = y.offset / element_size
+#     cdef int incy = y.strides[0] / element_size
+
+#     cdef cl_uint numCommandQueues = 1
+#     cdef cl_command_queue commandQueue = <cl_command_queue><int>queue.int_ptr
+#     cdef cl_uint numEventsInWaitList = 0
+#     cdef cl_event *eventWaitList = NULL
+#     cdef cl_event event = NULL
+
+#     cdef clblasStatus
+#     if dtype == np.dtype('float32'):
+#         err = clblasSdot(
+#             N, ddata, offd, xdata, offx, incx, ydata, offy, incy,
+#             numCommandQueues, &commandQueue,
+#             numEventsInWaitList, eventWaitList, &event)
+#     elif dtype == np.dtype('float64'):
+#         err = clblasDdot(
+#             N, ddata, offd, xdata, offx, incx, ydata, offy, incy,
+#             numCommandQueues, &commandQueue,
+#             numEventsInWaitList, eventWaitList, &event)
+#     else:
+#         raise ValueError("Unrecognized dtype '%s'" % dtype)
+
+#     if err != clblasSuccess:
+#         raise RuntimeError("'dot' failed: %s" % get_status_message(err))
+
+
+# ########## NRM2 ##########
+# cdef extern from "clBLAS.h":
+#     clblasStatus clblasSnrm2(
+#         size_t N,
+#         cl_mem NRM2,
+#         size_t offNRM2,
+#         cl_mem X,
+#         size_t offx,
+#         int incx,
+#         cl_uint numCommandQueues,
+#         cl_command_queue *commandQueues,
+#         cl_uint numEventsInWaitList,
+#         const cl_event *eventWaitList,
+#         cl_event *events)
+#     clblasStatus clblasDnrm2(
+#         size_t N,
+#         cl_mem NRM2,
+#         size_t offNRM2,
+#         cl_mem X,
+#         size_t offx,
+#         int incx,
+#         cl_uint numCommandQueues,
+#         cl_command_queue *commandQueues,
+#         cl_uint numEventsInWaitList,
+#         const cl_event *eventWaitList,
+#         cl_event *events)
+
+
+# def nrm2(queue, x, d):
+#     """d <- sqrt(dot(x', x))"""
+#     dtype = check_dtype([x, d], ['float32', 'float64'])
+#     check_vector(x, 'x')
+#     check_scalar(d, 'd')
+
+#     cdef size_t N = x.shape[0]
+
+#     cdef size_t element_size = dtype_size[dtype]
+#     cdef cl_mem ddata = <cl_mem><int>d.base_data.int_ptr
+#     cdef size_t offd = d.offset / element_size
+#     cdef cl_mem xdata = <cl_mem><int>x.base_data.int_ptr
+#     cdef size_t offx = x.offset / element_size
+#     cdef int incx = x.strides[0] / element_size
+
+#     cdef cl_uint numCommandQueues = 1
+#     cdef cl_command_queue commandQueue = <cl_command_queue><int>queue.int_ptr
+#     cdef cl_uint numEventsInWaitList = 0
+#     cdef cl_event *eventWaitList = NULL
+#     cdef cl_event event = NULL
+
+#     cdef clblasStatus
+#     if dtype == np.dtype('float32'):
+#         err = clblasSnrm2(
+#             N, ddata, offd, xdata, offx, incx,
+#             numCommandQueues, &commandQueue,
+#             numEventsInWaitList, eventWaitList, &event)
+#     elif dtype == np.dtype('float64'):
+#         err = clblasDnrm2(
+#             N, ddata, offd, xdata, offx, incx,
+#             numCommandQueues, &commandQueue,
+#             numEventsInWaitList, eventWaitList, &event)
+#     else:
+#         raise ValueError("Unrecognized dtype '%s'" % dtype)
+
+#     if err != clblasSuccess:
+#         raise RuntimeError("'nrm2' failed: %s" % get_status_message(err))
+
+
+# ########## ASUM ##########
+# cdef extern from "clBLAS.h":
+#     clblasStatus clblasSasum(
+#         size_t N,
+#         cl_mem ASUM,
+#         size_t offASUM,
+#         cl_mem X,
+#         size_t offx,
+#         int incx,
+#         cl_uint numCommandQueues,
+#         cl_command_queue *commandQueues,
+#         cl_uint numEventsInWaitList,
+#         const cl_event *eventWaitList,
+#         cl_event *events)
+#     clblasStatus clblasDasum(
+#         size_t N,
+#         cl_mem ASUM,
+#         size_t offASUM,
+#         cl_mem X,
+#         size_t offx,
+#         int incx,
+#         cl_uint numCommandQueues,
+#         cl_command_queue *commandQueues,
+#         cl_uint numEventsInWaitList,
+#         const cl_event *eventWaitList,
+#         cl_event *events)
+
+
+# def asum(queue, x, d):
+#     """d <- sum(abs(x))"""
+#     dtype = check_dtype([x, d], ['float32', 'float64'])
+#     check_vector(x, 'x')
+#     check_scalar(d, 'd')
+
+#     cdef size_t N = x.shape[0]
+
+#     cdef size_t element_size = dtype_size[dtype]
+#     cdef cl_mem ddata = <cl_mem><int>d.base_data.int_ptr
+#     cdef size_t offd = d.offset / element_size
+#     cdef cl_mem xdata = <cl_mem><int>x.base_data.int_ptr
+#     cdef size_t offx = x.offset / element_size
+#     cdef int incx = x.strides[0] / element_size
+
+#     cdef cl_uint numCommandQueues = 1
+#     cdef cl_command_queue commandQueue = <cl_command_queue><int>queue.int_ptr
+#     cdef cl_uint numEventsInWaitList = 0
+#     cdef cl_event *eventWaitList = NULL
+#     cdef cl_event event = NULL
+
+#     cdef clblasStatus
+#     if dtype == np.dtype('float32'):
+#         err = clblasSasum(
+#             N, ddata, offd, xdata, offx, incx,
+#             numCommandQueues, &commandQueue,
+#             numEventsInWaitList, eventWaitList, &event)
+#     elif dtype == np.dtype('float64'):
+#         err = clblasDasum(
+#             N, ddata, offd, xdata, offx, incx,
+#             numCommandQueues, &commandQueue,
+#             numEventsInWaitList, eventWaitList, &event)
+#     else:
+#         raise ValueError("Unrecognized dtype '%s'" % dtype)
+
+#     if err != clblasSuccess:
+#         raise RuntimeError("'asum' failed: %s" % get_status_message(err))
+
+
+########## GEMV ##########
 cdef extern from "clBLAS.h":
     clblasStatus clblasSgemv(
         clblasOrder order,

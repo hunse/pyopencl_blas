@@ -2,7 +2,12 @@ include "blas_base.pyx"
 
 from libcpp cimport bool
 
+import numpy as np
 from pyopencl.array import Array
+
+
+dtype_size = {np.dtype('float32'): 4,
+              np.dtype('float64'): 8}
 
 
 def dtypes_str(dtypes):
@@ -20,6 +25,8 @@ def check_dtype(args, dtypes):
     if dtype not in dtypes:
         raise ValueError("Data type must be %s" % dtypes_str(dtypes))
 
+    return dtype
+
 
 def check_array(a, ndim, name):
     if not isinstance(a, Array):
@@ -35,6 +42,12 @@ def check_matrix(a, name):
 
 def check_vector(a, name):
     check_array(a, 1, name)
+
+
+def check_shape_dim(shape, dim, target, name):
+    if shape[dim] != target:
+        raise ValueError("'%s.shape[%d]' must be %d (got %d)" %
+                         (name, dim, target, shape[dim]))
 
 
 cdef extern from "clBLAS.h":
@@ -54,10 +67,42 @@ def teardown():
 
 cdef extern from "clBLAS.h":
     clblasStatus clblasSgemv(
-        clblasOrder order, clblasTranspose transA, size_t M, size_t N,
-        cl_float alpha, const cl_mem A, size_t offA, size_t lda,
-        const cl_mem x, size_t offx, int incx,
-        cl_float beta, cl_mem y, size_t offy, int incy,
+        clblasOrder order,
+        clblasTranspose transA,
+        size_t M,
+        size_t N,
+        cl_float alpha,
+        const cl_mem A,
+        size_t offA,
+        size_t lda,
+        const cl_mem x,
+        size_t offx,
+        int incx,
+        cl_float beta,
+        cl_mem y,
+        size_t offy,
+        int incy,
+        cl_uint numCommandQueues,
+        cl_command_queue *commandQueues,
+        cl_uint numEventsInWaitList,
+        const cl_event *eventWaitList,
+        cl_event *events)
+    clblasStatus clblasDgemv(
+        clblasOrder order,
+        clblasTranspose transA,
+        size_t M,
+        size_t N,
+        cl_double alpha,
+        const cl_mem A,
+        size_t offA,
+        size_t lda,
+        const cl_mem x,
+        size_t offx,
+        int incx,
+        cl_double beta,
+        cl_mem y,
+        size_t offy,
+        int incy,
         cl_uint numCommandQueues,
         cl_command_queue *commandQueues,
         cl_uint numEventsInWaitList,
@@ -65,30 +110,28 @@ cdef extern from "clBLAS.h":
         cl_event *events)
 
 
-def gemv(queue, A, X, Y, bool transA=False, float alpha=1.0, float beta=0.0):
-    """Y <- beta * Y + alpha * dot(AT, X)
-    where AT = A.T if transA else A
-    """
-    check_dtype([A, X, Y], ['float32'])
+def gemv(queue, A, x, y, bool transA=False, alpha=1.0, beta=0.0):
+    """y <- alpha * dot(A, x) + beta * y"""
+    dtype = check_dtype([A, x, y], ['float32', 'float64'])
     check_matrix(A, 'A')
-    check_vector(X, 'X')
-    check_vector(Y, 'Y')
+    check_vector(x, 'x')
+    check_vector(y, 'y')
 
     cdef size_t M = A.shape[0]
     cdef size_t N = A.shape[1]
-    assert X.shape[0] == (M if transA else N)
-    assert Y.shape[0] == (N if transA else M)
+    check_shape_dim(x.shape, 0, (M if transA else N), 'x')
+    check_shape_dim(y.shape, 0, (N if transA else M), 'y')
 
-    cdef size_t float_size = 4
+    cdef size_t element_size = dtype_size[dtype]
     cdef cl_mem Adata = <cl_mem><int>A.base_data.int_ptr
-    cdef size_t offA = A.offset / float_size
-    cdef size_t lda = A.strides[0] / float_size
-    cdef cl_mem Xdata = <cl_mem><int>X.base_data.int_ptr
-    cdef size_t offx = X.offset / float_size
-    cdef int incx = X.strides[0] / float_size
-    cdef cl_mem Ydata = <cl_mem><int>Y.base_data.int_ptr
-    cdef size_t offy = Y.offset / float_size
-    cdef int incy = Y.strides[0] / float_size
+    cdef size_t offA = A.offset / element_size
+    cdef size_t lda = A.strides[0] / element_size
+    cdef cl_mem xdata = <cl_mem><int>x.base_data.int_ptr
+    cdef size_t offx = x.offset / element_size
+    cdef int incx = x.strides[0] / element_size
+    cdef cl_mem ydata = <cl_mem><int>y.base_data.int_ptr
+    cdef size_t offy = y.offset / element_size
+    cdef int incy = y.strides[0] / element_size
 
     cdef cl_uint numCommandQueues = 1
     cdef cl_command_queue commandQueue = <cl_command_queue><int>queue.int_ptr
@@ -96,12 +139,23 @@ def gemv(queue, A, X, Y, bool transA=False, float alpha=1.0, float beta=0.0):
     cdef cl_event *eventWaitList = NULL
     cdef cl_event event = NULL
 
-    cdef clblasStatus err = clblasSgemv(
-        clblasRowMajor, clblasTrans if transA else clblasNoTrans,
-        M, N, alpha, Adata, offA, lda,
-        Xdata, offx, incx, beta, Ydata, offy, incy,
-        numCommandQueues, &commandQueue,
-        numEventsInWaitList, eventWaitList, &event)
+    cdef clblasStatus
+    if dtype == np.dtype('float32'):
+        err = clblasSgemv(
+            clblasRowMajor, clblasTrans if transA else clblasNoTrans,
+            M, N, <cl_float>alpha, Adata, offA, lda,
+            xdata, offx, incx, <cl_float>beta, ydata, offy, incy,
+            numCommandQueues, &commandQueue,
+            numEventsInWaitList, eventWaitList, &event)
+    elif dtype == np.dtype('float64'):
+        err = clblasDgemv(
+            clblasRowMajor, clblasTrans if transA else clblasNoTrans,
+            M, N, <cl_double>alpha, Adata, offA, lda,
+            xdata, offx, incx, <cl_double>beta, ydata, offy, incy,
+            numCommandQueues, &commandQueue,
+            numEventsInWaitList, eventWaitList, &event)
+    else:
+        raise ValueError("Unrecognized dtype '%s'" % dtype)
 
     if err != clblasSuccess:
         raise RuntimeError("'gemv' failed: %s" % get_status_message(err))
@@ -131,12 +185,35 @@ cdef extern from "clBLAS.h":
         cl_uint numEventsInWaitList,
         const cl_event *eventWaitList,
         cl_event *events)
+    clblasStatus clblasDgemm(
+        clblasOrder order,
+        clblasTranspose transA,
+        clblasTranspose transB,
+        size_t M,
+        size_t N,
+        size_t K,
+        cl_double alpha,
+        const cl_mem A,
+        size_t offA,
+        size_t lda,
+        const cl_mem B,
+        size_t offB,
+        size_t ldb,
+        cl_double beta,
+        cl_mem C,
+        size_t offC,
+        size_t ldc,
+        cl_uint numCommandQueues,
+        cl_command_queue *commandQueues,
+        cl_uint numEventsInWaitList,
+        const cl_event *eventWaitList,
+        cl_event *events)
 
 
 def gemm(queue, A, B, C, transA=False, transB=False,
          float alpha=1.0, float beta=0.0):
     """C <- alpha * dot(A, B) + beta * C"""
-    check_dtype([A, B, C], ['float32'])
+    dtype = check_dtype([A, B, C], ['float32', 'float64'])
     check_matrix(A, 'A')
     check_matrix(B, 'B')
     check_matrix(C, 'C')
@@ -144,20 +221,20 @@ def gemm(queue, A, B, C, transA=False, transB=False,
     cdef size_t M = A.shape[1 if transA else 0]
     cdef size_t K = A.shape[0 if transA else 1]
     cdef size_t N = B.shape[0 if transB else 1]
-    assert B.shape[1 if transB else 0] == K
-    assert C.shape[0] == M
-    assert C.shape[1] == N
+    check_shape_dim(B.shape, 1 if transB else 0, K, 'B')
+    check_shape_dim(C.shape, 0, M, 'C')
+    check_shape_dim(C.shape, 1, N, 'C')
 
-    cdef size_t float_size = 4
+    cdef size_t element_size = dtype_size[dtype]
     cdef cl_mem Adata = <cl_mem><int>A.base_data.int_ptr
-    cdef size_t offA = A.offset / float_size
-    cdef size_t lda = A.strides[0] / float_size
+    cdef size_t offA = A.offset / element_size
+    cdef size_t lda = A.strides[0] / element_size
     cdef cl_mem Bdata = <cl_mem><int>B.base_data.int_ptr
-    cdef size_t offB = B.offset / float_size
-    cdef size_t ldb = B.strides[0] / float_size
+    cdef size_t offB = B.offset / element_size
+    cdef size_t ldb = B.strides[0] / element_size
     cdef cl_mem Cdata = <cl_mem><int>C.base_data.int_ptr
-    cdef size_t offC = C.offset / float_size
-    cdef size_t ldc = C.strides[0] / float_size
+    cdef size_t offC = C.offset / element_size
+    cdef size_t ldc = C.strides[0] / element_size
 
     cdef cl_uint numCommandQueues = 1
     cdef cl_command_queue commandQueue = <cl_command_queue><int>queue.int_ptr
@@ -165,14 +242,27 @@ def gemm(queue, A, B, C, transA=False, transB=False,
     cdef cl_event *eventWaitList = NULL
     cdef cl_event event = NULL
 
-    cdef clblasStatus err = clblasSgemm(
-        clblasRowMajor,
-        clblasTrans if transA else clblasNoTrans,
-        clblasTrans if transB else clblasNoTrans,
-        M, N, K, alpha, Adata, offA, lda, Bdata, offB, ldb,
-        beta, Cdata, offC, ldc,
-        numCommandQueues, &commandQueue,
-        numEventsInWaitList, eventWaitList, &event)
+    if dtype == np.dtype('float32'):
+        err = clblasSgemm(
+            clblasRowMajor,
+            clblasTrans if transA else clblasNoTrans,
+            clblasTrans if transB else clblasNoTrans,
+            M, N, K, <cl_float>alpha, Adata, offA, lda, Bdata, offB, ldb,
+            <cl_float>beta, Cdata, offC, ldc,
+            numCommandQueues, &commandQueue,
+            numEventsInWaitList, eventWaitList, &event)
+    elif dtype == np.dtype('float64'):
+        err = clblasDgemm(
+            clblasRowMajor,
+            clblasTrans if transA else clblasNoTrans,
+            clblasTrans if transB else clblasNoTrans,
+            M, N, K, <cl_double>alpha, Adata, offA, lda, Bdata, offB, ldb,
+            <cl_double>beta, Cdata, offC, ldc,
+            numCommandQueues, &commandQueue,
+            numEventsInWaitList, eventWaitList, &event)
+    else:
+        raise ValueError("Unrecognized dtype '%s'" % dtype)
+
 
     if err != clblasSuccess:
         raise RuntimeError("'gemm' failed: %s" % get_status_message(err))

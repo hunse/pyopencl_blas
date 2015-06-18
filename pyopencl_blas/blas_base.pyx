@@ -32,6 +32,7 @@ cdef extern from "clBLAS.h":
         clblasInsufficientMemVecY
 
     ctypedef float cl_float
+    ctypedef double cl_double
     ctypedef unsigned int cl_uint
 
     struct _cl_mem:

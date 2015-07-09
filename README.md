@@ -25,8 +25,10 @@ Inside, you will find an `include` directory and a `lib` directory
 Your machine will need to know where to find the libraries
 when running the program.
 On Linux, you can do this by putting a file in `/etc/ld.so.conf.d/`
-that contains the full path to the `lib` directory.
-I am not sure how to do it on other systems.
+that contains the full path to the `lib` directory (the file name must end in `.conf`).
+Then call `sudo ldconfig` (you can do `sudo ldconfig -v | grep libclBLAS`
+to make sure that the library has been detected).
+I am not sure how to add the libraries on other systems.
 
 Open up ``setup.py`` and change the include dirs in the extension
 to target your OpenCL include directory

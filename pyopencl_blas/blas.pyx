@@ -105,15 +105,15 @@ def swap(queue, x, y):
     check_shape_dim(y.shape, 0, N, 'y')
 
     cdef size_t element_size = dtype_size[dtype]
-    cdef cl_mem xdata = <cl_mem><int>x.base_data.int_ptr
+    cdef cl_mem xdata = <cl_mem><size_t>x.base_data.int_ptr
     cdef size_t offx = x.offset / element_size
     cdef int incx = x.strides[0] / element_size
-    cdef cl_mem ydata = <cl_mem><int>y.base_data.int_ptr
+    cdef cl_mem ydata = <cl_mem><size_t>y.base_data.int_ptr
     cdef size_t offy = y.offset / element_size
     cdef int incy = y.strides[0] / element_size
 
     cdef cl_uint numCommandQueues = 1
-    cdef cl_command_queue commandQueue = <cl_command_queue><int>queue.int_ptr
+    cdef cl_command_queue commandQueue = <cl_command_queue><size_t>queue.int_ptr
     cdef cl_uint numEventsInWaitList = 0
     cdef cl_event *eventWaitList = NULL
     cdef cl_event event = NULL
@@ -170,12 +170,12 @@ def scal(queue, alpha, x):
     cdef size_t N = x.shape[0]
 
     cdef size_t element_size = dtype_size[dtype]
-    cdef cl_mem xdata = <cl_mem><int>x.base_data.int_ptr
+    cdef cl_mem xdata = <cl_mem><size_t>x.base_data.int_ptr
     cdef size_t offx = x.offset / element_size
     cdef int incx = x.strides[0] / element_size
 
     cdef cl_uint numCommandQueues = 1
-    cdef cl_command_queue commandQueue = <cl_command_queue><int>queue.int_ptr
+    cdef cl_command_queue commandQueue = <cl_command_queue><size_t>queue.int_ptr
     cdef cl_uint numEventsInWaitList = 0
     cdef cl_event *eventWaitList = NULL
     cdef cl_event event = NULL
@@ -238,15 +238,15 @@ def copy(queue, x, y):
     check_shape_dim(y.shape, 0, N, 'y')
 
     cdef size_t element_size = dtype_size[dtype]
-    cdef cl_mem xdata = <cl_mem><int>x.base_data.int_ptr
+    cdef cl_mem xdata = <cl_mem><size_t>x.base_data.int_ptr
     cdef size_t offx = x.offset / element_size
     cdef int incx = x.strides[0] / element_size
-    cdef cl_mem ydata = <cl_mem><int>y.base_data.int_ptr
+    cdef cl_mem ydata = <cl_mem><size_t>y.base_data.int_ptr
     cdef size_t offy = y.offset / element_size
     cdef int incy = y.strides[0] / element_size
 
     cdef cl_uint numCommandQueues = 1
-    cdef cl_command_queue commandQueue = <cl_command_queue><int>queue.int_ptr
+    cdef cl_command_queue commandQueue = <cl_command_queue><size_t>queue.int_ptr
     cdef cl_uint numEventsInWaitList = 0
     cdef cl_event *eventWaitList = NULL
     cdef cl_event event = NULL
@@ -311,15 +311,15 @@ def axpy(queue, x, y, alpha=1.0):
     check_shape_dim(y.shape, 0, N, 'y')
 
     cdef size_t element_size = dtype_size[dtype]
-    cdef cl_mem xdata = <cl_mem><int>x.base_data.int_ptr
+    cdef cl_mem xdata = <cl_mem><size_t> x.base_data.int_ptr
     cdef size_t offx = x.offset / element_size
     cdef int incx = x.strides[0] / element_size
-    cdef cl_mem ydata = <cl_mem><int>y.base_data.int_ptr
+    cdef cl_mem ydata = <cl_mem><size_t>y.base_data.int_ptr
     cdef size_t offy = y.offset / element_size
     cdef int incy = y.strides[0] / element_size
 
     cdef cl_uint numCommandQueues = 1
-    cdef cl_command_queue commandQueue = <cl_command_queue><int>queue.int_ptr
+    cdef cl_command_queue commandQueue = <cl_command_queue><size_t>queue.int_ptr
     cdef cl_uint numEventsInWaitList = 0
     cdef cl_event *eventWaitList = NULL
     cdef cl_event event = NULL
@@ -387,17 +387,17 @@ def axpy(queue, x, y, alpha=1.0):
 #     check_shape_dim(y.shape, 0, N, 'y')
 
 #     cdef size_t element_size = dtype_size[dtype]
-#     cdef cl_mem ddata = <cl_mem><int>d.base_data.int_ptr
+#     cdef cl_mem ddata = <cl_mem><size_t>d.base_data.int_ptr
 #     cdef size_t offd = d.offset / element_size
-#     cdef cl_mem xdata = <cl_mem><int>x.base_data.int_ptr
+#     cdef cl_mem xdata = <cl_mem><size_t>x.base_data.int_ptr
 #     cdef size_t offx = x.offset / element_size
 #     cdef int incx = x.strides[0] / element_size
-#     cdef cl_mem ydata = <cl_mem><int>y.base_data.int_ptr
+#     cdef cl_mem ydata = <cl_mem><size_t>y.base_data.int_ptr
 #     cdef size_t offy = y.offset / element_size
 #     cdef int incy = y.strides[0] / element_size
 
 #     cdef cl_uint numCommandQueues = 1
-#     cdef cl_command_queue commandQueue = <cl_command_queue><int>queue.int_ptr
+#     cdef cl_command_queue commandQueue = <cl_command_queue><size_t>queue.int_ptr
 #     cdef cl_uint numEventsInWaitList = 0
 #     cdef cl_event *eventWaitList = NULL
 #     cdef cl_event event = NULL
@@ -457,14 +457,14 @@ def axpy(queue, x, y, alpha=1.0):
 #     cdef size_t N = x.shape[0]
 
 #     cdef size_t element_size = dtype_size[dtype]
-#     cdef cl_mem ddata = <cl_mem><int>d.base_data.int_ptr
+#     cdef cl_mem ddata = <cl_mem><size_t>d.base_data.int_ptr
 #     cdef size_t offd = d.offset / element_size
-#     cdef cl_mem xdata = <cl_mem><int>x.base_data.int_ptr
+#     cdef cl_mem xdata = <cl_mem><size_t>x.base_data.int_ptr
 #     cdef size_t offx = x.offset / element_size
 #     cdef int incx = x.strides[0] / element_size
 
 #     cdef cl_uint numCommandQueues = 1
-#     cdef cl_command_queue commandQueue = <cl_command_queue><int>queue.int_ptr
+#     cdef cl_command_queue commandQueue = <cl_command_queue><size_t>queue.int_ptr
 #     cdef cl_uint numEventsInWaitList = 0
 #     cdef cl_event *eventWaitList = NULL
 #     cdef cl_event event = NULL
@@ -524,14 +524,14 @@ def axpy(queue, x, y, alpha=1.0):
 #     cdef size_t N = x.shape[0]
 
 #     cdef size_t element_size = dtype_size[dtype]
-#     cdef cl_mem ddata = <cl_mem><int>d.base_data.int_ptr
+#     cdef cl_mem ddata = <cl_mem><size_t>d.base_data.int_ptr
 #     cdef size_t offd = d.offset / element_size
-#     cdef cl_mem xdata = <cl_mem><int>x.base_data.int_ptr
+#     cdef cl_mem xdata = <cl_mem><size_t>x.base_data.int_ptr
 #     cdef size_t offx = x.offset / element_size
 #     cdef int incx = x.strides[0] / element_size
 
 #     cdef cl_uint numCommandQueues = 1
-#     cdef cl_command_queue commandQueue = <cl_command_queue><int>queue.int_ptr
+#     cdef cl_command_queue commandQueue = <cl_command_queue><size_t>queue.int_ptr
 #     cdef cl_uint numEventsInWaitList = 0
 #     cdef cl_event *eventWaitList = NULL
 #     cdef cl_event event = NULL
@@ -613,18 +613,18 @@ def gemv(queue, A, x, y, bool transA=False, alpha=1.0, beta=0.0):
     check_shape_dim(y.shape, 0, (N if transA else M), 'y')
 
     cdef size_t element_size = dtype_size[dtype]
-    cdef cl_mem Adata = <cl_mem><int>A.base_data.int_ptr
+    cdef cl_mem Adata = <cl_mem><size_t>A.base_data.int_ptr
     cdef size_t offA = A.offset / element_size
     cdef size_t lda = A.strides[0] / element_size
-    cdef cl_mem xdata = <cl_mem><int>x.base_data.int_ptr
+    cdef cl_mem xdata = <cl_mem><size_t>x.base_data.int_ptr
     cdef size_t offx = x.offset / element_size
     cdef int incx = x.strides[0] / element_size
-    cdef cl_mem ydata = <cl_mem><int>y.base_data.int_ptr
+    cdef cl_mem ydata = <cl_mem><size_t>y.base_data.int_ptr
     cdef size_t offy = y.offset / element_size
     cdef int incy = y.strides[0] / element_size
 
     cdef cl_uint numCommandQueues = 1
-    cdef cl_command_queue commandQueue = <cl_command_queue><int>queue.int_ptr
+    cdef cl_command_queue commandQueue = <cl_command_queue><size_t>queue.int_ptr
     cdef cl_uint numEventsInWaitList = 0
     cdef cl_event *eventWaitList = NULL
     cdef cl_event event = NULL
@@ -716,18 +716,18 @@ def gemm(queue, A, B, C, transA=False, transB=False,
     check_shape_dim(C.shape, 1, N, 'C')
 
     cdef size_t element_size = dtype_size[dtype]
-    cdef cl_mem Adata = <cl_mem><int>A.base_data.int_ptr
+    cdef cl_mem Adata = <cl_mem><size_t>A.base_data.int_ptr
     cdef size_t offA = A.offset / element_size
     cdef size_t lda = A.strides[0] / element_size
-    cdef cl_mem Bdata = <cl_mem><int>B.base_data.int_ptr
+    cdef cl_mem Bdata = <cl_mem><size_t>B.base_data.int_ptr
     cdef size_t offB = B.offset / element_size
     cdef size_t ldb = B.strides[0] / element_size
-    cdef cl_mem Cdata = <cl_mem><int>C.base_data.int_ptr
+    cdef cl_mem Cdata = <cl_mem><size_t>C.base_data.int_ptr
     cdef size_t offC = C.offset / element_size
     cdef size_t ldc = C.strides[0] / element_size
 
     cdef cl_uint numCommandQueues = 1
-    cdef cl_command_queue commandQueue = <cl_command_queue><int>queue.int_ptr
+    cdef cl_command_queue commandQueue = <cl_command_queue><size_t>queue.int_ptr
     cdef cl_uint numEventsInWaitList = 0
     cdef cl_event *eventWaitList = NULL
     cdef cl_event event = NULL

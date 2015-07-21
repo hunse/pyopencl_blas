@@ -13,6 +13,8 @@ queue = cl.CommandQueue(ctx)
 tolerances = {
     'float32': dict(atol=1e-7, rtol=1e-4),
     'float64': dict(atol=1e-8, rtol=1e-5),
+    'complex64': dict(atol=1e-6, rtol=1e-3),
+    'complex128': dict(atol=1e-7, rtol=1e-4)
 }
 
 
@@ -38,11 +40,12 @@ def test_check_dtype(rng):
     sA, sX, sY = gemv_system(queue, m, n, dtype, rng)
     dA, dX, dY = map(lambda x: x.astype('float64'), [sA, sX, sY])
     cA, cX, cY = map(lambda x: x.astype('complex64'), [sA, sX, sY])
-    # zA, zX, zY = map(lambda x: x.astype('complex128'), [sA, sX, sY])
+    zA, zX, zY = map(lambda x: x.astype('complex128'), [sA, sX, sY])
 
     clsA, clsX, clsY = map(to_ocl, (sA, sX, sY))
     cldA, cldX, cldY = map(to_ocl, (dA, dX, dY))
     clcA, clcX, clcY = map(to_ocl, (cA, cX, cY))
+    clzA, clzX, clzY = map(to_ocl, (zA, zX, zY))
 
     try:
         blas.setup()
@@ -53,14 +56,16 @@ def test_check_dtype(rng):
         with pytest.raises(ValueError):
             blas.gemv(queue, clsA, cldX, clsY)
 
-        # complex64 not supported yet
         with pytest.raises(ValueError):
-            blas.gemv(queue, clcA, clcX, clcY)
+            blas.gemv(queue, clcA, cldX, clcY)
+
+        with pytest.raises(ValueError):
+            blas.gemv(queue, clzA, cldX, clzY)
     finally:
         blas.teardown()
 
 
-@pytest.mark.parametrize('dtype', ['float32', 'float64'])
+@pytest.mark.parametrize('dtype', ['float32', 'float64', 'complex64', 'complex128'])
 @pytest.mark.parametrize('n', [7, 25, 100])
 def test_blas1(n, dtype, rng):
     tols = tolerances[dtype]
@@ -97,7 +102,7 @@ def test_blas1(n, dtype, rng):
         blas.teardown()
 
 
-@pytest.mark.parametrize('dtype', ['float32', 'float64'])
+@pytest.mark.parametrize('dtype', ['float32', 'float64', 'complex64', 'complex128'])
 @pytest.mark.parametrize('m, n', [(5, 6), (10, 10), (100, 79)])
 def test_gemv(m, n, dtype, rng):
     tols = tolerances[dtype]
@@ -132,7 +137,7 @@ def test_gemv(m, n, dtype, rng):
         blas.teardown()
 
 
-@pytest.mark.parametrize('dtype', ['float32', 'float64'])
+@pytest.mark.parametrize('dtype', ['float32', 'float64', 'complex64', 'complex128'])
 @pytest.mark.parametrize('m, k, n', [(5, 6, 7), (10, 9, 10)])
 def test_gemm(m, k, n, dtype, rng):
     tols = tolerances[dtype]

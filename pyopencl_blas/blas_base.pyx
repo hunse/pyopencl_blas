@@ -1,4 +1,5 @@
 cdef extern from "clBLAS.h":
+
     ctypedef enum clblasStatus:
         clblasSuccess
         clblasInvalidValue
@@ -34,6 +35,14 @@ cdef extern from "clBLAS.h":
     ctypedef float cl_float
     ctypedef double cl_double
     ctypedef unsigned int cl_uint
+
+    ctypedef struct cl_float2:
+        cl_float x
+        cl_float y
+
+    ctypedef struct cl_double2:
+        cl_double x
+        cl_double y
 
     struct _cl_mem:
         pass

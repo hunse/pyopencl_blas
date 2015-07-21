@@ -19,7 +19,7 @@ You will also need to install [Cython](http://cython.org/).
 Download the
 [latest clBLAS release](https://github.com/clMathLibraries/clBLAS/releases)
 (2.4.0 at the time of writing),
-and unpack it somewhere.
+and unpack it somewhere (I suggest unpacking to `/opt/`).
 Inside, you will find an `include` directory and a `lib` directory
 (called `lib64` on 64-bit machines).
 Your machine will need to know where to find the libraries

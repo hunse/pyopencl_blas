@@ -8,9 +8,9 @@ ext_modules.append(Extension(
     'pyopencl_blas.blas',
     ['pyopencl_blas/blas.pyx'],
     include_dirs=[
-        '/opt/intel/opencl-1.2-3.2.1.16712/include',
-        '/home/ehunsber/src/clBLAS-2.4.0-Linux-x64/include'],
-    library_dirs=['/home/ehunsber/src/clBLAS-2.4.0-Linux-x64/lib64'],
+        '/opt/AMDAPP/include',
+        '/opt/clBLAS-2.4.0-Linux-x64/include'],
+    library_dirs=['/opt/clBLAS-2.4.0-Linux-x64/lib64'],
     libraries=['clBLAS'],
     language='c++',
     extra_compile_args=['-w', '-O3']))

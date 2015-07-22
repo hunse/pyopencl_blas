@@ -6,7 +6,8 @@ PyOpenCL wrappers for AMD clMathLibraries.clBLAS.
 Currently only supports a small subset of the BLAS library
 (specifically the SWAP, SCAL, COPY, AXPY, GEMV, and GEMM
 families of functions),
-and only for real numbers (i.e., 32-bit or 64-bit floats).
+for real numbers (i.e., 32-bit or 64-bit floats)
+and complex numbers (i.e., complex64 and complex128).
 
 
 Installation
@@ -25,7 +26,8 @@ Inside, you will find an `include` directory and a `lib` directory
 Your machine will need to know where to find the libraries
 when running the program.
 On Linux, you can do this by putting a file in `/etc/ld.so.conf.d/`
-that contains the full path to the `lib` directory (the file name must end in `.conf`).
+that contains the full path to the `lib` directory
+(the file name must end in `.conf`).
 Then call `sudo ldconfig` (you can do `sudo ldconfig -v | grep libclBLAS`
 to make sure that the library has been detected).
 I am not sure how to add the libraries on other systems.
@@ -75,7 +77,7 @@ queue = cl.CommandQueue(ctx)
 # need to initialize the library
 blas.setup()
 
-dtype = 'float32'  # also supports 'float64'
+dtype = 'float32'  # also supports 'float64', 'complex64' and 'complex128'
 x = np.array([1, 2, 3, 4], dtype=dtype)
 y = np.array([4, 3, 2, 1], dtype=dtype)
 

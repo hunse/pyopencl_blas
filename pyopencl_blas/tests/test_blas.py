@@ -81,22 +81,26 @@ def test_blas1(n, dtype, rng):
     try:
         blas.setup()
 
-        blas.swap(queue, clx, cly)
+        event = blas.swap(queue, clx, cly)
         assert np.allclose(clx.get(), y, **tols)
         assert np.allclose(cly.get(), x, **tols)
+        assert isinstance(event, cl.Event)
 
         clx.set(x)
-        blas.scal(queue, alpha, clx)
+        event = blas.scal(queue, alpha, clx)
         assert np.allclose(clx.get(), alpha * x, **tols)
+        assert isinstance(event, cl.Event)
 
         clx.set(x)
-        blas.copy(queue, clx, cly)
+        event = blas.copy(queue, clx, cly)
         assert np.allclose(cly.get(), x, **tols)
+        assert isinstance(event, cl.Event)
 
         clx.set(x)
         cly.set(y)
-        blas.axpy(queue, clx, cly, alpha=alpha)
+        event = blas.axpy(queue, clx, cly, alpha=alpha)
         assert np.allclose(cly.get(), alpha * x + y, **tols)
+        assert isinstance(event, cl.Event)
 
     finally:
         blas.teardown()
@@ -116,8 +120,9 @@ def test_gemv(m, n, dtype, rng):
         # normal gemv
         clX.set(X)
         clY.fill(0)
-        blas.gemv(queue, clA, clX, clY)
+        event = blas.gemv(queue, clA, clX, clY)
         assert np.allclose(clY.get(), np.dot(A, X), **tols)
+        assert isinstance(event, cl.Event)
 
         # transposed gemv
         clX.fill(0)
@@ -155,8 +160,9 @@ def test_gemm(m, k, n, dtype, rng):
         blas.setup()
 
         # normal gemm
-        blas.gemm(queue, clA, clB, clC)
+        event = blas.gemm(queue, clA, clB, clC)
         assert np.allclose(clC.get(), np.dot(A, B), **tols)
+        assert isinstance(event, cl.Event)
 
         # double transposed gemm
         blas.gemm(queue, clB, clA, clCT, transA=True, transB=True)

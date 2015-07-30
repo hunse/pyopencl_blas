@@ -3,6 +3,7 @@ include "blas_base.pyx"
 from libcpp cimport bool
 
 import numpy as np
+import pyopencl as cl
 from pyopencl.array import Array
 
 
@@ -173,6 +174,8 @@ def swap(queue, x, y):
     if err != clblasSuccess:
         raise RuntimeError("'swap' failed: %s" % get_status_message(err))
 
+    return cl.Event.from_int_ptr(<size_t>event)
+
 
 ########## SCAL ##########
 cdef extern from "clBLAS.h":
@@ -266,6 +269,8 @@ def scal(queue, alpha, x):
 
     if err != clblasSuccess:
         raise RuntimeError("'scal' failed: %s" % get_status_message(err))
+
+    return cl.Event.from_int_ptr(<size_t>event)
 
 
 ########## COPY ##########
@@ -373,6 +378,8 @@ def copy(queue, x, y):
 
     if err != clblasSuccess:
         raise RuntimeError("'copy' failed: %s" % get_status_message(err))
+
+    return cl.Event.from_int_ptr(<size_t>event)
 
 
 ########## AXPY ##########
@@ -484,6 +491,8 @@ def axpy(queue, x, y, alpha=1.0):
 
     if err != clblasSuccess:
         raise RuntimeError("'axpy' failed: %s" % get_status_message(err))
+
+    return cl.Event.from_int_ptr(<size_t>event)
 
 
 # TODO: implement scratch buffers for the following functions
@@ -850,6 +859,8 @@ def gemv(queue, A, x, y, bool transA=False, alpha=1.0, beta=0.0):
     if err != clblasSuccess:
         raise RuntimeError("'gemv' failed: %s" % get_status_message(err))
 
+    return cl.Event.from_int_ptr(<size_t>event)
+
 
 cdef extern from "clBLAS.h":
     clblasStatus clblasSgemm(
@@ -1017,6 +1028,7 @@ def gemm(queue, A, B, C, transA=False, transB=False,
     else:
         raise ValueError("Unrecognized dtype '%s'" % dtype)
 
-
     if err != clblasSuccess:
         raise RuntimeError("'gemm' failed: %s" % get_status_message(err))
+
+    return cl.Event.from_int_ptr(<size_t>event)

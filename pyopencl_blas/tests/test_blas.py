@@ -65,7 +65,8 @@ def test_check_dtype(rng):
         blas.teardown()
 
 
-@pytest.mark.parametrize('dtype', ['float32', 'float64', 'complex64', 'complex128'])
+@pytest.mark.parametrize('dtype', [
+    'float32', 'float64', 'complex64', 'complex128'])
 @pytest.mark.parametrize('n', [7, 25, 100])
 def test_blas1(n, dtype, rng):
     tols = tolerances[dtype]
@@ -106,7 +107,8 @@ def test_blas1(n, dtype, rng):
         blas.teardown()
 
 
-@pytest.mark.parametrize('dtype', ['float32', 'float64', 'complex64', 'complex128'])
+@pytest.mark.parametrize('dtype', [
+    'float32', 'float64', 'complex64', 'complex128'])
 @pytest.mark.parametrize('m, n', [(5, 6), (10, 10), (100, 79)])
 def test_gemv(m, n, dtype, rng):
     tols = tolerances[dtype]
@@ -142,7 +144,8 @@ def test_gemv(m, n, dtype, rng):
         blas.teardown()
 
 
-@pytest.mark.parametrize('dtype', ['float32', 'float64', 'complex64', 'complex128'])
+@pytest.mark.parametrize('dtype', [
+    'float32', 'float64', 'complex64', 'complex128'])
 @pytest.mark.parametrize('m, k, n', [(5, 6, 7), (10, 9, 10)])
 def test_gemm(m, k, n, dtype, rng):
     tols = tolerances[dtype]

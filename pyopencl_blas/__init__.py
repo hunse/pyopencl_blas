@@ -1,4 +1,4 @@
-from .blas import (
+from .blas import (  # noqa: F401
     setup, teardown,
     swap, scal, copy, axpy,
     gemv,

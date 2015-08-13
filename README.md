@@ -90,9 +90,6 @@ cly.set(y)
 blas.axpy(queue, clx, cly, alpha=0.8)
 print("Expected: ", 0.8 * x + y)
 print("Actual:   ", cly.get())
-
-# clean up the library when finished
-blas.teardown()
 ```
 
 See the `examples` folder for more examples.

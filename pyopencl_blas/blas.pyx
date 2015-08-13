@@ -1,11 +1,12 @@
-include "blas_base.pyx"
-
-from libcpp cimport bool
+import atexit
 
 import numpy as np
 import pyopencl as cl
 from pyopencl.array import Array
 
+from libcpp cimport bool
+
+include "blas_base.pyx"
 
 dtype_size = {np.dtype('float32'): 4,
               np.dtype('float64'): 8,
@@ -59,13 +60,27 @@ cdef extern from "clBLAS.h":
 
 
 def setup():
-    cdef clblasStatus err = clblasSetup()
-    if err != clblasSuccess:
-        raise RuntimeError("Failed to setup clBLAS (Error %d)" % err)
+    """Setup the clBLAS library"""
+    global is_setup
+    cdef clblasStatus err
+    if not is_setup:
+        err = clblasSetup()
+        if err != clblasSuccess:
+            raise RuntimeError("Failed to setup clBLAS (Error %d)" % err)
+        else:
+            is_setup = True
 
 
 def teardown():
-    clblasTeardown()
+    """Teardown the clBLAS library (automatically called at exit)"""
+    global is_setup
+    if is_setup:
+        clblasTeardown()
+        is_setup = False
+
+
+is_setup = False
+atexit.register(teardown)  # teardown when the program closes
 
 
 ########## SWAP ##########

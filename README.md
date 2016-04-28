@@ -16,6 +16,9 @@ Installation
 First, install [PyOpenCL](https://pypi.python.org/pypi/pyopencl)
 as per the [instructions](http://wiki.tiker.net/PyOpenCL/Installation).
 You will also need to install [Cython](http://cython.org/).
+Additionally, the OpenCL headers are required for building:
+
+    sudo apt-get install opencl-headers
 
 Download the
 [latest clBLAS release](https://github.com/clMathLibraries/clBLAS/releases)

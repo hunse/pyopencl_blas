@@ -59,6 +59,10 @@ cdef extern from "clBLAS.h":
         clblasRowMajor
         clblasColumnMajor
 
+    ctypedef enum clblasUplo:
+        clblasUpper
+        clblasLower
+
     ctypedef enum clblasTranspose:
         clblasNoTrans
         clblasTrans

@@ -182,3 +182,37 @@ def test_gemm(m, k, n, dtype, rng):
 
     finally:
         blas.teardown()
+
+
+@pytest.mark.parametrize('dtype', [
+    'float32', 'float64', 'complex64', 'complex128'])
+@pytest.mark.parametrize('k, n', [(6, 7), (11, 10)])
+def test_syrk(k, n, dtype, rng):
+    tols = tolerances[dtype]
+
+    A = np.zeros((n, k), dtype=dtype)
+    C = np.zeros((n, n), dtype=dtype)
+    D = np.zeros((k, k), dtype=dtype)
+    A[...] = rng.uniform(-1, 1, size=A.shape)
+    C[...] = rng.uniform(-1, 1, size=C.shape)
+    D[...] = rng.uniform(-1, 1, size=D.shape)
+
+    clA, clC, clD = map(to_ocl, [A, C, D])
+    a = 0.9
+    b = 0.5
+
+    try:
+        blas.setup()
+
+        # normal syrk
+        up = np.triu_indices(n)
+        event = blas.syrk(queue, clA, clC, alpha=a, beta=b)
+        assert np.allclose(clC.get()[up], (a*np.dot(A, A.T) + b*C)[up], **tols)
+        assert isinstance(event, cl.Event)
+
+        # transposed syrk
+        up = np.triu_indices(k)
+        blas.syrk(queue, clA, clD, transA=True, alpha=a, beta=b)
+        assert np.allclose(clD.get()[up], (a*np.dot(A.T, A) + b*D)[up], **tols)
+    finally:
+        blas.teardown()

@@ -1047,3 +1047,157 @@ def gemm(queue, A, B, C, transA=False, transB=False,
         raise RuntimeError("'gemm' failed: %s" % get_status_message(err))
 
     return cl.Event.from_int_ptr(<size_t>event)
+
+
+cdef extern from "clBLAS.h":
+    clblasStatus clblasSsyrk(
+        clblasOrder order,
+        clblasUplo uplo,
+        clblasTranspose transA,
+        size_t N,
+        size_t K,
+        cl_float alpha,
+        const cl_mem A,
+        size_t offA,
+        size_t lda,
+        cl_float beta,
+        cl_mem C,
+        size_t offC,
+        size_t ldc,
+        cl_uint numCommandQueues,
+        cl_command_queue *commandQueues,
+        cl_uint numEventsInWaitList,
+        const cl_event *eventWaitList,
+        cl_event *events)
+    clblasStatus clblasDsyrk(
+        clblasOrder order,
+        clblasUplo uplo,
+        clblasTranspose transA,
+        size_t N,
+        size_t K,
+        cl_double alpha,
+        const cl_mem A,
+        size_t offA,
+        size_t lda,
+        cl_double beta,
+        cl_mem C,
+        size_t offC,
+        size_t ldc,
+        cl_uint numCommandQueues,
+        cl_command_queue *commandQueues,
+        cl_uint numEventsInWaitList,
+        const cl_event *eventWaitList,
+        cl_event *events)
+    clblasStatus clblasCsyrk(
+        clblasOrder order,
+        clblasUplo uplo,
+        clblasTranspose transA,
+        size_t N,
+        size_t K,
+        cl_float2 alpha,
+        const cl_mem A,
+        size_t offA,
+        size_t lda,
+        cl_float2 beta,
+        cl_mem C,
+        size_t offC,
+        size_t ldc,
+        cl_uint numCommandQueues,
+        cl_command_queue *commandQueues,
+        cl_uint numEventsInWaitList,
+        const cl_event *eventWaitList,
+        cl_event *events)
+    clblasStatus clblasZsyrk(
+        clblasOrder order,
+        clblasUplo uplo,
+        clblasTranspose transA,
+        size_t N,
+        size_t K,
+        cl_double2 alpha,
+        const cl_mem A,
+        size_t offA,
+        size_t lda,
+        cl_double2 beta,
+        cl_mem C,
+        size_t offC,
+        size_t ldc,
+        cl_uint numCommandQueues,
+        cl_command_queue *commandQueues,
+        cl_uint numEventsInWaitList,
+        const cl_event *eventWaitList,
+        cl_event *events)
+
+
+def syrk(queue, A, C, transA=False, upperA=True,
+         float alpha=1.0, float beta=0.0):
+    """Rank-k update of a symmetric matrix
+
+        C <- alpha * dot(A, A^T) + beta * C   if not transA
+        C <- alpha * dot(A^T, A) + beta * C   if transA
+    """
+    dtype = check_dtype([A, C], ['float32', 'float64', 'complex64', 'complex128'])
+    check_matrix(A, 'A')
+    check_matrix(C, 'C')
+
+    cdef size_t N = A.shape[1 if transA else 0]
+    cdef size_t K = A.shape[0 if transA else 1]
+    check_shape_dim(C.shape, 0, N, 'C')
+    check_shape_dim(C.shape, 1, N, 'C')
+
+    cdef size_t element_size = dtype_size[dtype]
+    cdef cl_mem Adata = <cl_mem><size_t>A.base_data.int_ptr
+    cdef size_t offA = A.offset / element_size
+    cdef size_t lda = A.strides[0] / element_size
+    cdef cl_mem Cdata = <cl_mem><size_t>C.base_data.int_ptr
+    cdef size_t offC = C.offset / element_size
+    cdef size_t ldc = C.strides[0] / element_size
+
+    cdef cl_uint numCommandQueues = 1
+    cdef cl_command_queue commandQueue = <cl_command_queue><size_t>queue.int_ptr
+    cdef cl_uint numEventsInWaitList = 0
+    cdef cl_event *eventWaitList = NULL
+    cdef cl_event event = NULL
+
+    if dtype == np.dtype('float32'):
+        err = clblasSsyrk(
+            clblasRowMajor,
+            clblasUpper if upperA else clblasLower,
+            clblasTrans if transA else clblasNoTrans,
+            N, K, <cl_float>alpha, Adata, offA, lda,
+            <cl_float>beta, Cdata, offC, ldc,
+            numCommandQueues, &commandQueue,
+            numEventsInWaitList, eventWaitList, &event)
+    elif dtype == np.dtype('float64'):
+        err = clblasDsyrk(
+            clblasRowMajor,
+            clblasUpper if upperA else clblasLower,
+            clblasTrans if transA else clblasNoTrans,
+            N, K, <cl_double>alpha, Adata, offA, lda,
+            <cl_double>beta, Cdata, offC, ldc,
+            numCommandQueues, &commandQueue,
+            numEventsInWaitList, eventWaitList, &event)
+    elif dtype == np.dtype('complex64'):
+        err = clblasCsyrk(
+            clblasRowMajor,
+            clblasUpper if upperA else clblasLower,
+            clblasTrans if transA else clblasNoTrans,
+            N, K, <cl_float2>cl_float2(x=alpha.real,y=alpha.imag), Adata, offA, lda,
+            <cl_float2>cl_float2(x=beta.real,y=beta.imag), Cdata, offC, ldc,
+            numCommandQueues, &commandQueue,
+            numEventsInWaitList, eventWaitList, &event)
+    elif dtype == np.dtype('complex128'):
+        err = clblasZsyrk(
+            clblasRowMajor,
+            clblasUpper if upperA else clblasLower,
+            clblasTrans if transA else clblasNoTrans,
+            N, K, <cl_double2>cl_double2(x=alpha.real,y=alpha.imag), Adata, offA, lda,
+            <cl_double2>cl_double2(x=beta.real,y=beta.imag), Cdata, offC, ldc,
+            numCommandQueues, &commandQueue,
+            numEventsInWaitList, eventWaitList, &event)
+    else:
+        raise ValueError("Unrecognized dtype '%s'" % dtype)
+
+    if err != clblasSuccess:
+        raise RuntimeError("'syrk' failed: %s" % get_status_message(err))
+
+    return cl.Event.from_int_ptr(<size_t>event)

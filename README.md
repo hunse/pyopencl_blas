@@ -70,29 +70,25 @@ and pass them to the BLAS functions.
 
 ```python
 import numpy as np
-import pyopencl as cl
-from pyopencl.array import Array
-import pyopencl_blas as blas
+import pyopencl
+import pyopencl.array
+import pyopencl_blas
+pyopencl_blas.setup()  # initialize the library
 
-ctx = cl.create_some_context()
-queue = cl.CommandQueue(ctx)
-
-# need to initialize the library
-blas.setup()
+ctx = pyopencl.create_some_context()
+queue = pyopencl.CommandQueue(ctx)
 
 dtype = 'float32'  # also supports 'float64', 'complex64' and 'complex128'
 x = np.array([1, 2, 3, 4], dtype=dtype)
 y = np.array([4, 3, 2, 1], dtype=dtype)
 
-clx = Array(queue, x.shape, x.dtype)
-cly = Array(queue, y.shape, y.dtype)
-clx.set(x)
-cly.set(y)
+clx = pyopencl.array.to_device(queue, x)
+cly = pyopencl.array.to_device(queue, y)
 
 # call a BLAS function on the arrays
-blas.axpy(queue, clx, cly, alpha=0.8)
-print("Expected: ", 0.8 * x + y)
-print("Actual:   ", cly.get())
+pyopencl_blas.axpy(queue, clx, cly, alpha=0.8)
+print("Expected: %s" % (0.8 * x + y))
+print("Actual:   %s" % (cly.get()))
 ```
 
 See the `examples` folder for more examples.
